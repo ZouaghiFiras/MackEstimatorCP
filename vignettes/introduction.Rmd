@@ -1,105 +1,152 @@
 ---
-title: "Introduction to MackEstimatorCP"
+title: "Using Mack's Estimator for Claims Reserving"
+author: "Your Name"
+date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Introduction to MackEstimatorCP}
+  %\VignetteIndexEntry{Using Mack's Estimator for Claims Reserving}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-# MackEstimatorCP: Mack's Estimator with Large Exposure Asymptotics in a Compound Poisson Setting
+## Introduction
 
-The `MackEstimatorCP` package implements Mack's estimator for claims reserving, motivated by large exposure asymptotics in a compound Poisson setting. This vignette provides a detailed explanation of each method, including its formula, purpose, and code implementations.
-
-## Table of Contents
-
-1. [Incremental Claims Representation](#incremental-claims-representation)
-2. [Compound Poisson Process Representation](#compound-poisson-process-representation)
-3. [Chain Ladder Assumptions](#chain-ladder-assumptions)
-4. [Estimator of Development Factor](#estimator-of-development-factor)
-5. [Mack's Conditional Mean Squared Error (MSE) of Prediction](#conditional-mean-squared-error-of-prediction)
-6. [Asymptotic Development Factor Limit](#asymptotic-development-factor-limit)
-7. [Variance Parameter Estimator](#variance-parameter-estimator)
-8. [Conditional MSE in Asymptotic Case](#conditional-mse-in-asymptotic-case)
-9. [Standardized Conditional MSE with Exposure Parameter](#standardized-conditional-mse)
-10. [Asymptotic Variance Estimation](#asymptotic-variance-estimation)
-11. [Estimator for Conditional Mean Squared Error (Equation 5.1)](#conditional-mse-estimator-equation-51)
-
----
+Mack's estimator is widely used in actuarial science for claims reserving, particularly within the chain ladder method. This vignette provides an overview of each function in the Mack estimator implementation, detailing its purpose, formula, code, and how it contributes to computing ultimate claims and reserves.
 
 ## 1. Incremental Claims Representation
 
-**Formula**: \( X_i^t = C_i^t - C_i^{t-1} \quad \text{for } t \geq 2 \)
+The incremental claims representation is derived by computing the difference between cumulative claims at successive development periods. This helps in tracking claims progression over time.
 
-```r
+### Formula
+
+The formula for incremental claims is:
+\[
+\Delta C_{i,t} = C_{i,t} - C_{i,t-1}
+\]
+where \( C_{i,t} \) is the cumulative claim amount for accident year \( i \) at development period \( t \).
+
+### Code
+
+```R
 incremental_claims <- function(cumulative_claims) {
   diff(cumulative_claims, lag = 1, differences = 1)
 }
 ```
 
----
+### Explanation
+
+The `incremental_claims` function calculates the difference between cumulative claims in successive periods. This is important for breaking down cumulative data into incremental claims, which are more informative for examining claims patterns and development.
 
 ## 2. Compound Poisson Process Representation
 
-**Formula**: \( X_i^t = \sum_{k=1}^{N_i^t} Z_{i,k} \)
+The compound Poisson process models the total claim amount as the sum of individual claim severities. This is often used when modeling aggregate claims for a given number of claims.
 
-```r
+### Formula
+
+For \( N \) claims and severities \( Z_j \), the total claims amount \( S \) is given by:
+\[
+S = \sum_{j=1}^{N} Z_j
+\]
+
+### Code
+
+```R
 compound_poisson_claims <- function(num_claims, claim_severities) {
   sum(claim_severities[1:num_claims])
 }
 ```
 
----
+### Explanation
 
-## 3. Chain Ladder Assumptions
+This function calculates the total claim amount by summing the severities of all claims up to a specified number. This approach models total claim amounts as a compound Poisson process, which is widely used in actuarial models for aggregate claims.
 
-### Expected Value of Future Claims
+## 3. Chain Ladder Expectation
 
-**Formula**: \( E[C_{i,t+1} | C_{i,1}, \dots, C_{i,t}] = f_t C_{i,t} \)
+The chain ladder method estimates future claims based on historical claims and development factors. The expected cumulative claim amount at development period \( t+1 \) is given by the development factor \( f_t \) multiplied by the cumulative claim amount \( C_{i,t} \) at the previous development period.
 
-```r
+### Formula
+
+The chain ladder expectation formula is:
+\[
+E[C_{i,t+1}] = f_t \cdot C_{i,t}
+\]
+
+### Code
+
+```R
 chain_ladder_expectation <- function(f_t, C_it) {
   f_t * C_it
 }
 ```
 
-### Variance of Future Claims
+### Explanation
 
-**Formula**: \( \text{Var}(C_{i,t+1} | C_{i,1}, \dots, C_{i,t}) = \sigma_t^2 C_{i,t} \)
+This function provides an estimate of expected claims at the next development period using the chain ladder approach. This method relies on the assumption that future claims development is proportional to historical claims at each period.
 
-```r
+## 4. Chain Ladder Variance
+
+The variance of the chain ladder estimate is calculated to assess the uncertainty in future claims estimates. The variance formula uses the development factor variance parameter \( \sigma_t^2 \) and cumulative claims amount \( C_{i,t} \).
+
+### Formula
+
+\[
+\text{Var}(C_{i,t+1}) = \sigma_t^2 \cdot C_{i,t}
+\]
+
+### Code
+
+```R
 chain_ladder_variance <- function(sigma_t_squared, C_it) {
   sigma_t_squared * C_it
 }
 ```
 
----
+### Explanation
 
-## 4. Estimator of Development Factor
+The `chain_ladder_variance` function calculates the variance of future claims based on historical claims. Variance is crucial for evaluating the risk associated with estimated reserves and provides a measure of predictive accuracy.
 
-**Formula**: 
+## 5. Development Factor Estimation
+
+The development factor for each period is estimated by calculating the ratio of cumulative claims across periods. This factor is fundamental in the chain ladder method, projecting cumulative claims into the future.
+
+### Formula
+
+The development factor \( f_t \) is estimated as:
 \[
-f_t = \frac{\sum_{i=1}^{T-t} C_{i,t+1}}{\sum_{i=1}^{T-t} C_{i,t}}
+f_t = \frac{\sum_{i=1}^{n-t} C_{i,t+1}}{\sum_{i=1}^{n-t} C_{i,t}}
 \]
 
-```r
+### Code
+
+```R
 development_factor_estimate <- function(claims_triangle, t) {
-  sum(claims_triangle[1:(nrow(claims_triangle) - t), t + 1], na.rm = TRUE) /
-    sum(claims_triangle[1:(nrow(claims_triangle) - t), t], na.rm = TRUE)
+  numerator <- sum(claims_triangle[1:(nrow(claims_triangle) - t), t + 1], na.rm = TRUE)
+  denominator <- sum(claims_triangle[1:(nrow(claims_triangle) - t), t], na.rm = TRUE)
+  if (denominator == 0) return(NA)
+  numerator / denominator
 }
 ```
 
----
+### Explanation
 
-## 5. Mack's Conditional Mean Squared Error (MSE) of Prediction
+This function estimates the development factor \( f_t \) for each development year. Development factors are essential in projecting cumulative claims forward, allowing for the completion of the claims triangle.
 
-**Formula**:
+## 6. Mack’s Conditional Mean Squared Error (MSE) of Prediction
+
+Mack's estimator includes an MSE calculation for each cell in the claims triangle, helping assess the accuracy of predictions.
+
+### Formula
+
+The MSE formula is:
 \[
-\text{MSE} = \sum_{t} \frac{\sigma_t^2}{f_t^2} \left( \frac{1}{C_{i,t}} + \frac{1}{\sum_j C_{j,t}} \right)
+\text{MSE}(C_{i,t+1}) = \frac{\sigma_t^2}{f_t^2} \left( \frac{1}{C_{i,t}} + \frac{1}{\sum_{j=1}^{n} C_{j,t}} \right)
 \]
 
-```r
+### Code
+
+```R
 conditional_mse_prediction <- function(sigma_t_squared, f_t, C_it, claims_triangle, t) {
+  if (C_it == 0 || f_t == 0) return(NA)
   term1 <- sigma_t_squared / (f_t^2)
   term2 <- 1 / C_it
   term3 <- 1 / sum(claims_triangle[, t], na.rm = TRUE)
@@ -107,99 +154,146 @@ conditional_mse_prediction <- function(sigma_t_squared, f_t, C_it, claims_triang
 }
 ```
 
----
+### Explanation
 
-## 6. Asymptotic Development Factor Limit
+The function calculates MSE for each cell, capturing prediction uncertainty. By quantifying error, actuaries can gauge the reliability of estimates for future claims and reserves.
 
-**Formula**:
+## 7. Asymptotic Development Factor Limit
+
+The asymptotic development factor represents the ratio of successive expected claim amounts at large exposures, providing insight into long-term claim behavior.
+
+### Formula
+
 \[
-f_t \xrightarrow{\text{a.s.}} \frac{E[ZI\{D \leq t+1\}]}{E[ZI\{D \leq t\}]}
+\lim_{t \to \infty} f_t = \frac{\text{E}(Z_{t+1})}{\text{E}(Z_t)}
 \]
 
-```r
+### Code
+
+```R
 asymptotic_development_factor_limit <- function(expected_Z_t_plus1, expected_Z_t) {
+  if (expected_Z_t == 0) return(NA)
   expected_Z_t_plus1 / expected_Z_t
 }
 ```
 
----
+### Explanation
 
-## 7. Variance Parameter Estimator
+The asymptotic limit is useful in scenarios with large exposure, indicating the steady-state development factor. This function calculates the ratio of expected claims, aiding in long-term reserve calculations.
 
-**Formula**:
+## 8. Variance Parameter Estimation
+
+The variance parameter \( \sigma_t^2 \) is estimated to assess the volatility of claim development across periods.
+
+### Formula
+
 \[
-\sigma_t^2 = (f_t - 1) \left( \frac{E[Z^2 I\{D = t+1\}]}{E[Z I\{D = t+1\}]} + (f_t - 1) \frac{E[Z^2 I\{D \leq t\}]}{E[Z I\{D \leq t\}]} \right)
+\sigma_t^2 = (f_t - 1) \left( \frac{\text{E}(Z_{t+1}^2)}{\text{E}(Z_{t+1})} + (f_t - 1) \frac{\text{E}(Z_t^2)}{\text{E}(Z_t)} \right)
 \]
 
-```r
+### Code
+
+```R
 variance_parameter_estimate <- function(f_t, expected_Z_squared_t_plus1, expected_Z_t_plus1, expected_Z_squared_t, expected_Z_t) {
-  (f_t - 1) * (expected_Z_squared_t_plus1 / expected_Z_t_plus1 +
-               (f_t - 1) * expected_Z_squared_t / expected_Z_t)
+  if (expected_Z_t_plus1 == 0 || expected_Z_t == 0) return(NA)
+  (f_t - 1) * (expected_Z_squared_t_plus1 / expected_Z_t_plus1 + (f_t - 1) * expected_Z_squared_t / expected_Z_t)
 }
 ```
 
----
+### Explanation
 
-## 8. Conditional MSE in Asymptotic Case
+This function provides an estimate for the variance parameter, reflecting the variation in claim development. Estimating \( \sigma_t^2 \) allows for calculating prediction intervals and assessing reserve adequacy.
 
-**Formula**:
-\[
-\text{MSE}_{\text{asymptotic}} = \sigma_t^2 \cdot \left( \frac{1}{E[C_{i,t}]} + \frac{1}{\sum_j E[C_{j,t}]} \right)
-\]
+## 9. Extend Triangle to Full Rectangle (Ultimate Claims Calculation)
 
-```r
-asymptotic_conditional_mse <- function(sigma_t_squared, claims_triangle, t) {
-  term1 <- sigma_t_squared
-  term2 <- 1 / mean(claims_triangle[, t], na.rm = TRUE)
-  term3 <- 1 / sum(claims_triangle[, t], na.rm = TRUE)
-  term1 * (term2 + term3)
+The final function completes the claims triangle to a full rectangle by estimating claims in the unobserved triangle section.
+
+### Code
+
+```R
+complete_rectangle <- function(claims_triangle, development_factors) {
+  n_accident_years <- nrow(claims_triangle)
+  n_dev_years <- ncol(claims_triangle)
+  
+  for (i in 1:n_accident_years) {
+    for (t in (n_dev_years - i + 1):n_dev_years) {
+      claims_triangle[i, t] <- claims_triangle[i, t - 1] * development_factors[t - 1]
+    }
+  }
+  claims_triangle
 }
 ```
 
----
+### Explanation
 
-## 9. Standardized Conditional MSE with Exposure Parameter
+The `complete_rectangle` function estimates claims for the entire claims rectangle, projecting ultimate claims beyond the original triangle. This step is critical in actuarial reserving, as it provides estimates for claims that have not yet fully developed.
 
-**Formula**:
-\[
-\text{Standardized MSE} = \frac{\text{MSE}}{\text{Exposure}}
-\]
+## Conclusion
 
-```r
-standardized_conditional_mse <- function(mse, exposure) {
-  mse / exposure
+This vignette provides a detailed overview of eachfunction in Mack's estimator implementation, explaining their purpose, formulas, code, and significance in claims reserving. By following this approach, actuaries can project future claims development, assess reserve adequacy, and quantify prediction uncertainty. Mack's method remains a cornerstone in actuarial practice, and the tools provided in this package offer a systematic way to implement it.
+
+### Complete Example of Using Mack’s Estimator
+
+The following code provides a complete example of how to use these functions to calculate Mack's estimator for claims reserving, using simulated claims data.
+
+```R
+# Load required libraries
+library(stats)
+
+# Simulate claims triangle data
+set.seed(2)
+claims_triangle <- matrix(NA, nrow = 10, ncol = 10)
+for (i in 1:10) {
+  claims_triangle[i, 1:(11 - i)] <- cumsum(runif(11 - i, min = 100, max = 500))
+}
+
+# Run Mack's estimator function to compute development factors, variance estimates, and more
+result <- mack_estimator(claims_triangle)
+
+# Display results
+print("Development Factors:")
+print(result$development_factors)
+
+print("Variance Estimates:")
+print(result$variance_estimates)
+
+print("MSE Prediction:")
+print(result$mse_prediction)
+
+print("Completed Rectangle (Ultimate Predictions):")
+print(result$completed_rectangle)
+
+if (!is.null(result$asymptotic_limits)) {
+  print("Asymptotic Development Factor Limits:")
+  print(result$asymptotic_limits)
 }
 ```
 
----
+### Explanation of Results
 
-## 10. Asymptotic Variance Estimation
+1. **Development Factors**: These values are estimated from the claims triangle and are used to project claims into the future. They provide insight into how claims develop over time for each development year.
+  
+2. **Variance Estimates**: Variance estimates help quantify the uncertainty in the claims projections. Higher variance indicates more uncertainty in the reserve estimate for that period.
 
-**Formula**:
-\[
-\text{Variance}_{\text{asymptotic}} = \frac{E[Z^2]}{n^2}
-\]
+3. **MSE Prediction**: The Mean Squared Error of prediction quantifies the error associated with each claim estimate in the triangle. It is essential for evaluating the accuracy of the projections and for determining reserve confidence intervals.
 
-```r
-asymptotic_variance_estimate <- function(expected_Z_squared, n) {
-  expected_Z_squared / (n^2)
-}
-```
+4. **Completed Rectangle**: This is the fully developed claims rectangle, with ultimate predictions extending beyond the initial triangle. The completed rectangle provides the final reserves needed for all outstanding claims.
 
----
+5. **Asymptotic Development Factor Limits**: If severity data is available, this provides the asymptotic ratio between successive development factors, giving insight into long-term claims behavior.
 
-## 11. Estimator for Conditional Mean Squared Error (Equation 5.1)
+### Practical Applications
 
-```r
-conditional_mse_estimator <- function(sigma_t_squared, f_t, C_it, claims_triangle, t, n) {
-  mse_value <- conditional_mse_prediction(sigma_t_squared, f_t, C_it, claims_triangle, t)
-  standardized_mse_value <- standardized_conditional_mse(mse_value, n)
-  standardized_mse_value
-}
-```
+Using Mack's estimator, actuaries can:
 
----
+- **Estimate reserves** for outstanding claims accurately.
+- **Evaluate risk and uncertainty** by calculating prediction variances.
+- **Determine ultimate losses** by completing the claims rectangle.
+- **Assess long-term behavior** in claims development with asymptotic limits.
 
-# Conclusion
+These functions and calculations are essential tools for actuaries in assessing the adequacy of reserves, predicting future liabilities, and ensuring the financial stability of insurance portfolios.
+
+## Conclusion
+
+This vignette has provided a comprehensive guide to implementing and using Mack’s estimator for claims reserving in an actuarial context. By applying these functions, users can efficiently analyze and predict claim development patterns, helping insurers make informed reserving and financial decisions.
 
 The `MackEstimatorCP` package provides powerful tools for actuarial estimation in a compound Poisson framework, utilizing Mack's methods. Each section of this vignette details the relevant calculations, allowing users to effectively implement the package's functionality in their own analyses.
