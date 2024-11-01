@@ -1,5 +1,3 @@
-library(stats)
-
 #' Main function to compute Mack's estimator using helper functions
 #'
 #' @param claims_triangle A matrix representing cumulative claims data.
@@ -35,7 +33,9 @@ mack_estimator <- function(claims_triangle, severity_mean = NULL, severity_sd = 
   mse_prediction <- matrix(NA, nrow = n_accident_years, ncol = n_dev_years)
   for (i in 1:n_accident_years) {
     for (t in (i + 1):n_dev_years) {
-      if (!is.na(claims_triangle[i, t - 1]) && !is.na(variance_estimates[t - 1]) && !is.na(development_factors[t - 1])) {
+      if (!is.na(claims_triangle[i, t - 1]) && 
+          !is.na(variance_estimates[t - 1]) && 
+          !is.na(development_factors[t - 1])) {
         mse_prediction[i, t] <- conditional_mse_prediction(
           sigma_t_squared = variance_estimates[t - 1],
           f_t = development_factors[t - 1],
@@ -52,12 +52,12 @@ mack_estimator <- function(claims_triangle, severity_mean = NULL, severity_sd = 
   for (i in 1:n_accident_years) {
     for (t in (i + 1):n_dev_years) {
       if (!is.na(claims_triangle[i, t - 1]) && !is.na(claims_triangle[i, i]) && 
-          !is.na(variance_estimates) && !is.na(development_factors)) {
+          !is.na(variance_estimates[t - 1]) && !is.na(development_factors[t - 1])) {
         L_alpha[i, t] <- standardized_conditional_mse(
           C_i_T = claims_triangle[i, t - 1],
           C_i_T_minus_i_plus1 = claims_triangle[i, i],
-          sigma_t_squared = variance_estimates,
-          f_t = development_factors,
+          sigma_t_squared = variance_estimates[t - 1],
+          f_t = development_factors[t - 1],
           claims_triangle = claims_triangle,
           T = n_dev_years,
           i = i
@@ -78,12 +78,12 @@ mack_estimator <- function(claims_triangle, severity_mean = NULL, severity_sd = 
   conditional_mse_estimate_result <- matrix(NA, nrow = n_accident_years, ncol = n_dev_years)
   for (i in 1:n_accident_years) {
     for (t in (i + 1):n_dev_years) {
-      if (!is.na(claims_triangle[i, t - 1]) && !is.na(variance_estimates) && 
-          !is.na(development_factors)) {
+      if (!is.na(claims_triangle[i, t - 1]) && !is.na(variance_estimates[t - 1]) && 
+          !is.na(development_factors[t - 1])) {
         conditional_mse_estimate_result[i, t] <- conditional_mse_estimate(
           C_i_T = claims_triangle[i, t - 1],
-          sigma_t_squared = variance_estimates,
-          f_t = development_factors,
+          sigma_t_squared = variance_estimates[t - 1],
+          f_t = development_factors[t - 1],
           claims_triangle = claims_triangle,
           T = n_dev_years,
           i = i
