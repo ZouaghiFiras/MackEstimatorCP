@@ -1,4 +1,3 @@
-
 #' Main function to compute Mack's estimator using helper functions
 #'
 #' @param claims_triangle A matrix representing cumulative claims data.
