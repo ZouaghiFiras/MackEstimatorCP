@@ -4,7 +4,7 @@
 library(MackEstimatorCP)
 library(ggplot2)
 library(tidyr)
-library(chainladder)
+library(ChainLadder)
 
 # Function to run the demo
 run_demo <- function() {
@@ -12,15 +12,15 @@ run_demo <- function() {
   # Print introductory message
   cat("Welcome to the Interactive Demo for MackEstimatorCP!\n")
   
-  # Load RAA data from the chainladder package
-  data("RAA", package = "chainladder")
+  # Load RAA data from the ChainLadder package
+  data("RAA", package = "ChainLadder")
   cat("Cumulative Claims Triangle (RAA Data):\n")
   print(RAA)
   
   # Apply Chain Ladder Method
-  chainladder_fit <- Mack(Claims = RAA)
+  ChainLadder_fit <- Mack(Claims = RAA)
   cat("\nChain Ladder Estimates:\n")
-  print(chainladder_fit$estimates)
+  print(ChainLadder_fit$estimates)
   
   # Apply Custom Mack Estimator
   custom_fit <- MackEstimatorCP::MackEstimatorCP(Claims = RAA)
@@ -30,7 +30,7 @@ run_demo <- function() {
   # Prepare data for comparative results
   comparison_df <- data.frame(
     Accident_Year = rownames(RAA),
-    Chain_Ladder_Estimate = chainladder_fit$estimates,
+    Chain_Ladder_Estimate = ChainLadder_fit$estimates,
     Custom_Mack_Estimate = custom_fit
   )
   
