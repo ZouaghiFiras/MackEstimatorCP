@@ -1,0 +1,25 @@
+Package: MackEstimatorCP
+Type: Package
+Title: Mack Estimator for Large Exposure Asymptotics in a Compound Poisson Setting
+Version: 0.1.0
+Authors@R: person("Firas", "Zouaghi",
+           email = "firas.zouaghi@enicar.ucar.tn",
+           role = c("aut", "cre"))
+Description: A development release of MackCP, which offers an implementation of 
+    Mack's estimator motivated by large exposure asymptotics in a compound 
+    Poisson setting. This package provides actuarial tools for claims 
+    reserving, loss development, and risk analysis. The methodology is based 
+    on the research by Engler and Lindskog (2024), published in *ASTIN Bulletin*, 
+    which motivates Mack’s estimator using large exposure asymptotics in a 
+    compound Poisson setting (Engler & Lindskog, 2024). This release is under 
+    active development, and future versions may introduce improvements and 
+    new features as the package progresses towards a stable state.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.2
+VignetteBuilder: knitr
+References: 
+    Engler N, Lindskog F. Mack’s estimator motivated by large exposure 
+    asymptotics in a compound Poisson setting. *ASTIN Bulletin*. 2024;54(2):310-326. 
+    doi:10.1017/asb.2024.11

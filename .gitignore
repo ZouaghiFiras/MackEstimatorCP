@@ -1,0 +1,30 @@
+# R and RStudio files
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+*.Rproj
+*.rds
+
+# Package build artifacts
+*.tar.gz
+*.zip
+*.tgz
+
+# Vignettes and documentation
+*.pdf
+*.html
+
+# Testing files
+tests/testthat/*.Rout
+tests/testthat/*.Rout.fail
+
+# Temporary files
+*.tmp
+*.log
+*.swp
+
+# Directories created by R packages
+data/
+docs/
+inst/doc/

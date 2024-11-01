@@ -1,0 +1,205 @@
+---
+title: "Introduction to MackEstimatorCP"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to MackEstimatorCP}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# MackEstimatorCP: Mack's Estimator with Large Exposure Asymptotics in a Compound Poisson Setting
+
+The `MackEstimatorCP` package implements Mack's estimator for claims reserving, motivated by large exposure asymptotics in a compound Poisson setting. This vignette provides a detailed explanation of each method, including its formula, purpose, and code implementations.
+
+## Table of Contents
+
+1. [Incremental Claims Representation](#incremental-claims-representation)
+2. [Compound Poisson Process Representation](#compound-poisson-process-representation)
+3. [Chain Ladder Assumptions](#chain-ladder-assumptions)
+4. [Estimator of Development Factor](#estimator-of-development-factor)
+5. [Mack's Conditional Mean Squared Error (MSE) of Prediction](#conditional-mean-squared-error-of-prediction)
+6. [Asymptotic Development Factor Limit](#asymptotic-development-factor-limit)
+7. [Variance Parameter Estimator](#variance-parameter-estimator)
+8. [Conditional MSE in Asymptotic Case](#conditional-mse-in-asymptotic-case)
+9. [Standardized Conditional MSE with Exposure Parameter](#standardized-conditional-mse)
+10. [Asymptotic Variance Estimation](#asymptotic-variance-estimation)
+11. [Estimator for Conditional Mean Squared Error (Equation 5.1)](#conditional-mse-estimator-equation-51)
+
+---
+
+## 1. Incremental Claims Representation
+
+**Formula**: \( X_i^t = C_i^t - C_i^{t-1} \quad \text{for } t \geq 2 \)
+
+```r
+incremental_claims <- function(cumulative_claims) {
+  diff(cumulative_claims, lag = 1, differences = 1)
+}
+```
+
+---
+
+## 2. Compound Poisson Process Representation
+
+**Formula**: \( X_i^t = \sum_{k=1}^{N_i^t} Z_{i,k} \)
+
+```r
+compound_poisson_claims <- function(num_claims, claim_severities) {
+  sum(claim_severities[1:num_claims])
+}
+```
+
+---
+
+## 3. Chain Ladder Assumptions
+
+### Expected Value of Future Claims
+
+**Formula**: \( E[C_{i,t+1} | C_{i,1}, \dots, C_{i,t}] = f_t C_{i,t} \)
+
+```r
+chain_ladder_expectation <- function(f_t, C_it) {
+  f_t * C_it
+}
+```
+
+### Variance of Future Claims
+
+**Formula**: \( \text{Var}(C_{i,t+1} | C_{i,1}, \dots, C_{i,t}) = \sigma_t^2 C_{i,t} \)
+
+```r
+chain_ladder_variance <- function(sigma_t_squared, C_it) {
+  sigma_t_squared * C_it
+}
+```
+
+---
+
+## 4. Estimator of Development Factor
+
+**Formula**: 
+\[
+f_t = \frac{\sum_{i=1}^{T-t} C_{i,t+1}}{\sum_{i=1}^{T-t} C_{i,t}}
+\]
+
+```r
+development_factor_estimate <- function(claims_triangle, t) {
+  sum(claims_triangle[1:(nrow(claims_triangle) - t), t + 1], na.rm = TRUE) /
+    sum(claims_triangle[1:(nrow(claims_triangle) - t), t], na.rm = TRUE)
+}
+```
+
+---
+
+## 5. Mack's Conditional Mean Squared Error (MSE) of Prediction
+
+**Formula**:
+\[
+\text{MSE} = \sum_{t} \frac{\sigma_t^2}{f_t^2} \left( \frac{1}{C_{i,t}} + \frac{1}{\sum_j C_{j,t}} \right)
+\]
+
+```r
+conditional_mse_prediction <- function(sigma_t_squared, f_t, C_it, claims_triangle, t) {
+  term1 <- sigma_t_squared / (f_t^2)
+  term2 <- 1 / C_it
+  term3 <- 1 / sum(claims_triangle[, t], na.rm = TRUE)
+  term1 * (term2 + term3)
+}
+```
+
+---
+
+## 6. Asymptotic Development Factor Limit
+
+**Formula**:
+\[
+f_t \xrightarrow{\text{a.s.}} \frac{E[ZI\{D \leq t+1\}]}{E[ZI\{D \leq t\}]}
+\]
+
+```r
+asymptotic_development_factor_limit <- function(expected_Z_t_plus1, expected_Z_t) {
+  expected_Z_t_plus1 / expected_Z_t
+}
+```
+
+---
+
+## 7. Variance Parameter Estimator
+
+**Formula**:
+\[
+\sigma_t^2 = (f_t - 1) \left( \frac{E[Z^2 I\{D = t+1\}]}{E[Z I\{D = t+1\}]} + (f_t - 1) \frac{E[Z^2 I\{D \leq t\}]}{E[Z I\{D \leq t\}]} \right)
+\]
+
+```r
+variance_parameter_estimate <- function(f_t, expected_Z_squared_t_plus1, expected_Z_t_plus1, expected_Z_squared_t, expected_Z_t) {
+  (f_t - 1) * (expected_Z_squared_t_plus1 / expected_Z_t_plus1 +
+               (f_t - 1) * expected_Z_squared_t / expected_Z_t)
+}
+```
+
+---
+
+## 8. Conditional MSE in Asymptotic Case
+
+**Formula**:
+\[
+\text{MSE}_{\text{asymptotic}} = \sigma_t^2 \cdot \left( \frac{1}{E[C_{i,t}]} + \frac{1}{\sum_j E[C_{j,t}]} \right)
+\]
+
+```r
+asymptotic_conditional_mse <- function(sigma_t_squared, claims_triangle, t) {
+  term1 <- sigma_t_squared
+  term2 <- 1 / mean(claims_triangle[, t], na.rm = TRUE)
+  term3 <- 1 / sum(claims_triangle[, t], na.rm = TRUE)
+  term1 * (term2 + term3)
+}
+```
+
+---
+
+## 9. Standardized Conditional MSE with Exposure Parameter
+
+**Formula**:
+\[
+\text{Standardized MSE} = \frac{\text{MSE}}{\text{Exposure}}
+\]
+
+```r
+standardized_conditional_mse <- function(mse, exposure) {
+  mse / exposure
+}
+```
+
+---
+
+## 10. Asymptotic Variance Estimation
+
+**Formula**:
+\[
+\text{Variance}_{\text{asymptotic}} = \frac{E[Z^2]}{n^2}
+\]
+
+```r
+asymptotic_variance_estimate <- function(expected_Z_squared, n) {
+  expected_Z_squared / (n^2)
+}
+```
+
+---
+
+## 11. Estimator for Conditional Mean Squared Error (Equation 5.1)
+
+```r
+conditional_mse_estimator <- function(sigma_t_squared, f_t, C_it, claims_triangle, t, n) {
+  mse_value <- conditional_mse_prediction(sigma_t_squared, f_t, C_it, claims_triangle, t)
+  standardized_mse_value <- standardized_conditional_mse(mse_value, n)
+  standardized_mse_value
+}
+```
+
+---
+
+# Conclusion
+
+The `MackEstimatorCP` package provides powerful tools for actuarial estimation in a compound Poisson framework, utilizing Mack's methods. Each section of this vignette details the relevant calculations, allowing users to effectively implement the package's functionality in their own analyses.
