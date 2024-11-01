@@ -3,8 +3,8 @@ library(stats)
 
 # 1. Incremental Claims Representation
 incremental_claims <- function(cumulative_claims) {
-  diff(cumulative_claims, lag = 1, differences = 1)
-}
+  diff(cumulative_claims, lag = 1, differences = 1) 
+} 
 
 # 2. Compound Poisson Process Representation
 compound_poisson_claims <- function(num_claims, claim_severities) {
