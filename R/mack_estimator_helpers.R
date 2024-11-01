@@ -66,10 +66,6 @@ variance_parameter_estimate <- function(f_t, expected_Z_squared_t_plus1, expecte
 
 # 8. Conditional Mean Squared Error of Prediction in Asymptotic Case
 asymptotic_conditional_mse <- function(C_i_T, C_i_T_minus_i_plus1, f_s) {
-  if (C_i_T_minus_i_plus1 == 0) {
-    return(NA)
-  }
-  
   cumulative_factor <- prod(f_s)
   (C_i_T - C_i_T_minus_i_plus1 * cumulative_factor)^2 / C_i_T_minus_i_plus1
 }
